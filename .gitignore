@@ -1,0 +1,10 @@
+/target
+
+theta.json
+Cargo.lock
+.claude
+.vscode
+
+.DS_Store
+.idea/
+*.swp
