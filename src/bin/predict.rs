@@ -2,8 +2,11 @@ use std::env;
 use std::fs;
 
 use ftlr::model::linear_regression::Model;
+use ftlr::parse::dataset::parse_dataset;
+use ftlr::viz::plot;
 
 const THETA_PATH: &str = "theta.json";
+const REGRESSION_PATH: &str = "regression.png";
 
 fn load_model() -> Result<Model, String> {
     // requirement: 학습 전이면 (theta0, theta1)=(0, 0)으로 동작.
@@ -11,7 +14,7 @@ fn load_model() -> Result<Model, String> {
         Ok(content) => serde_json::from_str::<Model>(&content)
             .map_err(|e| format!("failed to parse {THETA_PATH}: {e}")),
         Err(_) => {
-            eprintln!("warning: {THETA_PATH} not found, defaulting to theta0=0, theta1=0");
+            eprintln!("warning: {THETA_PATH} not found, defaulting to theta0 = 0, theta1 = 0");
             Ok(Model { theta0: 0.0, theta1: 0.0 })
         }
     }
@@ -19,8 +22,8 @@ fn load_model() -> Result<Model, String> {
 
 fn main() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
-    if args.len() != 2 {
-        return Err(format!("usage: {} <km>", args[0]));
+    if !(2..=3).contains(&args.len()) {
+        return Err(format!("usage: {} <km> [data.csv]", args[0]));
     }
 
     let km: f64 = args[1]
@@ -34,6 +37,14 @@ fn main() -> Result<(), String> {
     let price = model.theta0 + model.theta1 * km;
 
     println!("{price}");
+
+    // data.csv가 함께 주어진 경우, 산점도 + 회귀선 + 예측 지점을 그린다.
+    if let Some(data_path) = args.get(2) {
+        let (xs, ys) = parse_dataset(data_path)?;
+        plot::regression(&xs, &ys, &model, Some((km, price)), REGRESSION_PATH)
+            .map_err(|e| format!("failed to draw {REGRESSION_PATH}: {e}"))?;
+        println!("regression chart saved to {REGRESSION_PATH}");
+    }
 
     Ok(())
 }

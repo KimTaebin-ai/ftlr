@@ -4,8 +4,10 @@ use std::fs;
 use ftlr::model::linear_regression::{gradient_descent, Model, TrainConfig};
 use ftlr::parse::dataset::parse_dataset;
 use ftlr::preprocess::normalize::{denormalize_thetas, MinMax};
+use ftlr::viz::plot;
 
 const THETA_PATH: &str = "theta.json";
+const SCATTER_PATH: &str = "scatter.png";
 
 fn main() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
@@ -22,8 +24,8 @@ fn main() -> Result<(), String> {
     let ys_norm = y_scale.normalize_slice(&ys);
 
     let config = TrainConfig {
-        learning_rate: 0.1,
-        iterations: 1000,
+        learning_rate: 1e-5,
+        iterations: 100000000,
     };
 
     let model_norm = gradient_descent(&xs_norm, &ys_norm, &config);
@@ -45,6 +47,10 @@ fn main() -> Result<(), String> {
     println!("theta0: {theta0}");
     println!("theta1: {theta1}");
     println!("saved to {THETA_PATH}");
+
+    plot::scatter(&xs, &ys, SCATTER_PATH)
+        .map_err(|e| format!("failed to draw {SCATTER_PATH}: {e}"))?;
+    println!("scatter saved to {SCATTER_PATH}");
 
     Ok(())
 }
