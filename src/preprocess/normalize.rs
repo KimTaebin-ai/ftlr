@@ -22,7 +22,7 @@ impl MinMax {
         self.max - self.min
     }
 
-    /// v ↦ (v − min) / (max − min) ∈ [0, 1]
+    // v -> (v − min) / (max − min) ∈ [0, 1]
     #[inline]
     pub fn normalize(&self, v: f64) -> f64 {
         (v - self.min) / self.range()
@@ -33,15 +33,15 @@ impl MinMax {
     }
 }
 
-/// 정규화 공간 (x', y') 에서 학습된 (θ₀', θ₁') 을
-/// 원 스케일 (x, y) 의 (θ₀, θ₁) 로 환산한다.
-///
-/// 유도: y' = θ₀' + θ₁' · x' 에  x' = (x − x_min)/x_range,  y' = (y − y_min)/y_range
-///   ⇒  y = [y_min + y_range·θ₀' − (y_range·θ₁'/x_range)·x_min]
-///        + (y_range·θ₁'/x_range) · x
-/// 따라서
-///   θ₁ = y_range · θ₁' / x_range
-///   θ₀ = y_min + y_range · θ₀' − θ₁ · x_min
+// 정규화 공간 (x', y') 에서 학습된 (θ₀', θ₁') 을
+// 원 스케일 (x, y) 의 (θ₀, θ₁) 로 환산한다.
+//
+// 유도: y' = θ₀' + θ₁' · x' 에  x' = (x − x_min)/x_range,  y' = (y − y_min)/y_range
+//   ⇒  y = [y_min + y_range·θ₀' − (y_range·θ₁'/x_range)·x_min]
+//        + (y_range·θ₁'/x_range) · x
+// 따라서
+//   θ₁ = y_range · θ₁' / x_range
+//   θ₀ = y_min + y_range · θ₀' − θ₁ · x_min
 pub fn denormalize_thetas(
     theta0_norm: f64,
     theta1_norm: f64,

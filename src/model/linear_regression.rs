@@ -2,7 +2,7 @@ use std::fs;
 
 use serde::{Deserialize, Serialize};
 
-/// 학습된 모델이 저장되는 기본 경로.
+// 학습된 모델이 저장되는 기본 경로.
 pub const THETA_PATH: &str = "theta.json";
 
 pub struct TrainConfig {
@@ -17,14 +17,14 @@ pub struct Model {
 }
 
 impl Model {
-    /// JSON 파일에서 모델을 읽어 역직렬화한다.
+    // JSON 파일에서 모델을 읽어 역직렬화한다.
     pub fn load(path: &str) -> Result<Self, String> {
         let content =
             fs::read_to_string(path).map_err(|e| format!("failed to read {path}: {e}"))?;
         serde_json::from_str(&content).map_err(|e| format!("failed to parse {path}: {e}"))
     }
 
-    /// 모델을 pretty JSON으로 직렬화해 파일에 저장한다.
+    // 모델을 pretty JSON으로 직렬화해 파일에 저장한다.
     pub fn save(&self, path: &str) -> Result<(), String> {
         let json = serde_json::to_string_pretty(self)
             .map_err(|e| format!("failed to serialize model: {e}"))?;
@@ -32,7 +32,7 @@ impl Model {
     }
 }
 
-/// 가설 ŷ = θ₀ + θ₁ · x. 정규화 공간과 원 공간 모두에서 쓰는 순수 선형 결합.
+// 가설 ŷ = θ₀ + θ₁ · x. 정규화 공간과 원 공간 모두에서 쓰는 순수 선형 결합.
 #[inline]
 pub fn predict(model: &Model, x: f64) -> f64 {
     model.theta0 + model.theta1 * x
