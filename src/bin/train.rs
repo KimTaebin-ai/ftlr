@@ -1,12 +1,10 @@
 use std::env;
-use std::fs;
 
-use ftlr::model::linear_regression::{gradient_descent, Model, TrainConfig};
+use ftlr::model::linear_regression::{gradient_descent, Model, TrainConfig, THETA_PATH};
 use ftlr::parse::dataset::parse_dataset;
 use ftlr::preprocess::normalize::{denormalize_thetas, MinMax};
 use ftlr::viz::plot;
 
-const THETA_PATH: &str = "theta.json";
 const SCATTER_PATH: &str = "scatter.png";
 
 fn main() -> Result<(), String> {
@@ -18,14 +16,14 @@ fn main() -> Result<(), String> {
     let (xs, ys) = parse_dataset(&args[1])?;
 
     // 입력/출력 스케일 차이로 손실함수 곡률이 폭발하므로 min-max로 [0,1] 정규화.
-    let x_scale = MinMax::from_slice(&xs);
-    let y_scale = MinMax::from_slice(&ys);
+    let x_scale = MinMax::from_slice(&xs)?;
+    let y_scale = MinMax::from_slice(&ys)?;
     let xs_norm = x_scale.normalize_slice(&xs);
     let ys_norm = y_scale.normalize_slice(&ys);
 
     let config = TrainConfig {
-        learning_rate: 1e-5,
-        iterations: 100000000,
+        learning_rate: 1e-1,
+        iterations: 20_000,
     };
 
     let model_norm = gradient_descent(&xs_norm, &ys_norm, &config);
@@ -39,10 +37,7 @@ fn main() -> Result<(), String> {
     );
 
     let model = Model { theta0, theta1 };
-    let json = serde_json::to_string_pretty(&model)
-        .map_err(|e| format!("failed to serialize model: {e}"))?;
-    fs::write(THETA_PATH, json)
-        .map_err(|e| format!("failed to write {THETA_PATH}: {e}"))?;
+    model.save(THETA_PATH)?;
 
     println!("theta0: {theta0}");
     println!("theta1: {theta1}");

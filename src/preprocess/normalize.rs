@@ -5,15 +5,16 @@ pub struct MinMax {
 }
 
 impl MinMax {
-    pub fn from_slice(values: &[f64]) -> Self {
-        assert!(!values.is_empty(), "cannot compute scale of empty slice");
+    pub fn from_slice(values: &[f64]) -> Result<Self, String> {
+        if values.is_empty() {
+            return Err("cannot compute scale of empty slice".to_string());
+        }
         let min = values.iter().copied().fold(f64::INFINITY, f64::min);
         let max = values.iter().copied().fold(f64::NEG_INFINITY, f64::max);
-        assert!(
-            max > min,
-            "min == max: all values are identical, cannot normalize"
-        );
-        MinMax { min, max }
+        if max <= min {
+            return Err("min == max: all values are identical, cannot normalize".to_string());
+        }
+        Ok(MinMax { min, max })
     }
 
     #[inline]

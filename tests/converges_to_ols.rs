@@ -13,10 +13,10 @@ fn gd_matches_normal_equation_on_synthetic_data() {
         .map(|(i, &x)| 2.0 * x + 5.0 + ((i as i64 % 7) as f64 - 3.0) * 0.05)
         .collect();
 
-    let ols = normal_equation(&xs, &ys);
+    let ols = normal_equation(&xs, &ys).expect("normal equation should succeed");
 
-    let x_scale = MinMax::from_slice(&xs);
-    let y_scale = MinMax::from_slice(&ys);
+    let x_scale = MinMax::from_slice(&xs).expect("x scale should be valid");
+    let y_scale = MinMax::from_slice(&ys).expect("y scale should be valid");
     let xs_norm = x_scale.normalize_slice(&xs);
     let ys_norm = y_scale.normalize_slice(&ys);
 

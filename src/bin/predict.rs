@@ -1,22 +1,19 @@
 use std::env;
-use std::fs;
+use std::path::Path;
 
-use ftlr::model::linear_regression::Model;
+use ftlr::model::linear_regression::{Model, THETA_PATH};
 use ftlr::parse::dataset::parse_dataset;
 use ftlr::viz::plot;
 
-const THETA_PATH: &str = "theta.json";
 const REGRESSION_PATH: &str = "regression.png";
 
 fn load_model() -> Result<Model, String> {
     // requirement: 학습 전이면 (theta0, theta1)=(0, 0)으로 동작.
-    match fs::read_to_string(THETA_PATH) {
-        Ok(content) => serde_json::from_str::<Model>(&content)
-            .map_err(|e| format!("failed to parse {THETA_PATH}: {e}")),
-        Err(_) => {
-            eprintln!("warning: {THETA_PATH} not found, defaulting to theta0 = 0, theta1 = 0");
-            Ok(Model { theta0: 0.0, theta1: 0.0 })
-        }
+    if Path::new(THETA_PATH).exists() {
+        Model::load(THETA_PATH)
+    } else {
+        eprintln!("warning: {THETA_PATH} not found, defaulting to theta0 = 0, theta1 = 0");
+        Ok(Model::default())
     }
 }
 
