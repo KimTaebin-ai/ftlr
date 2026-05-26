@@ -2,7 +2,7 @@ use std::env;
 use std::path::Path;
 
 use ftlr::model::linear_regression::{Model, THETA_PATH};
-use ftlr::parse::dataset::parse_dataset;
+use ftlr::utils::dataset::parse_dataset;
 use ftlr::viz::plot;
 
 const REGRESSION_PATH: &str = "regression.png";

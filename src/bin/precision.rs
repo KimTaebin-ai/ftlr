@@ -1,8 +1,8 @@
 use std::env;
 
-use ftlr::metrics::regression::{r_squared, rmse};
 use ftlr::model::linear_regression::{Model, THETA_PATH};
-use ftlr::parse::dataset::parse_dataset;
+use ftlr::utils::dataset::parse_dataset;
+use ftlr::utils::metrics::{r_squared, rmse};
 
 fn main() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();

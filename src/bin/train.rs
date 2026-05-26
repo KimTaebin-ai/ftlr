@@ -1,8 +1,8 @@
 use std::env;
 
 use ftlr::model::linear_regression::{gradient_descent, Model, TrainConfig, THETA_PATH};
-use ftlr::parse::dataset::parse_dataset;
 use ftlr::preprocess::normalize::{denormalize_thetas, MinMax};
+use ftlr::utils::dataset::parse_dataset;
 use ftlr::viz::plot;
 
 const SCATTER_PATH: &str = "scatter.png";
