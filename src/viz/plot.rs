@@ -6,7 +6,11 @@ const WIDTH: u32 = 1024;
 const HEIGHT: u32 = 768;
 const POINT_RADIUS: i32 = 4;
 
-pub type PlotResult = Result<(), Box<dyn std::error::Error>>;
+pub type PlotResult = Result<(), String>;
+
+// 회귀선 위에 추가로 표시할 요소. highlight는 model 없이는 의미가 없으므로
+// 타입으로 묶어 잘못된 조합을 컴파일 단에서 차단
+type Overlay<'a> = (&'a Model, Option<(f64, f64)>);
 
 fn axis_bounds(values: &[f64]) -> (f64, f64) {
     let min = values.iter().copied().fold(f64::INFINITY, f64::min);
@@ -16,19 +20,19 @@ fn axis_bounds(values: &[f64]) -> (f64, f64) {
 }
 
 // 산점도(+옵션 회귀선/예측 지점)를 그리는 공통 구현.
-// `model`이 주어지면 회귀선과 범례를, `highlight`가 주어지면 예측 지점을 함께 그린다.
 fn draw(
     xs: &[f64],
     ys: &[f64],
-    model: Option<&Model>,
-    highlight: Option<(f64, f64)>,
+    overlay: Option<Overlay<'_>>,
     caption: &str,
     path: &str,
-) -> PlotResult {
+) -> Result<(), Box<dyn std::error::Error>> {
     let root = BitMapBackend::new(path, (WIDTH, HEIGHT)).into_drawing_area();
     root.fill(&WHITE)?;
 
-    // 강조 지점이 데이터 범위를 벗어날 수 있으니 함께 고려해 축 범위를 잡는다.
+    let highlight = overlay.and_then(|(_, h)| h);
+
+    // 강조 지점이 데이터 범위를 벗어날 수 있으니 함께 고려해 축 범위 지정
     let mut xs_for_axis = xs.to_vec();
     let mut ys_for_axis = ys.to_vec();
     if let Some((hx, hy)) = highlight {
@@ -53,8 +57,8 @@ fn draw(
             .map(|(&x, &y)| Circle::new((x, y), POINT_RADIUS, BLUE.filled())),
     )?;
 
-    // 모델이 없으면 산점도만 그리고 끝낸다.
-    if let Some(model) = model {
+    // 오버레이가 없다면 산점도만 그림
+    if let Some((model, highlight)) = overlay {
         points
             .label("data")
             .legend(|(x, y)| Circle::new((x + 10, y), POINT_RADIUS, BLUE.filled()));
@@ -89,7 +93,8 @@ fn draw(
 
 // 학습 데이터의 (km, price) 산점도만 그려서 저장.
 pub fn scatter(xs: &[f64], ys: &[f64], path: &str) -> PlotResult {
-    draw(xs, ys, None, None, "Mileage vs Price (training data)", path)
+    draw(xs, ys, None, "Mileage vs Price (training data)", path)
+        .map_err(|e| e.to_string())
 }
 
 // 산점도 위에 회귀선을 겹쳐 그리고, 옵션으로 예측 지점(km, ŷ)을 강조 표시.
@@ -100,5 +105,6 @@ pub fn regression(
     highlight: Option<(f64, f64)>,
     path: &str,
 ) -> PlotResult {
-    draw(xs, ys, Some(model), highlight, "Linear regression", path)
+    draw(xs, ys, Some((model, highlight)), "Linear regression", path)
+        .map_err(|e| e.to_string())
 }

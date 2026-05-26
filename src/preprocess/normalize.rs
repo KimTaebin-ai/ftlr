@@ -54,3 +54,50 @@ pub fn denormalize_thetas(
     let theta0 = y_scale.min + yr * theta0_norm - theta1 * x_scale.min;
     (theta0, theta1)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn from_slice_rejects_empty() {
+        assert!(MinMax::from_slice(&[]).is_err());
+    }
+
+    // max == min 이면 range = 0 → normalize 시 0/0 발생하므로 생성 단계에서 막아야 함.
+    #[test]
+    fn from_slice_rejects_identical_values() {
+        assert!(MinMax::from_slice(&[3.0, 3.0, 3.0]).is_err());
+    }
+
+    #[test]
+    fn normalize_maps_endpoints_to_zero_and_one() {
+        let scale = MinMax::from_slice(&[10.0, 20.0, 30.0]).unwrap();
+        assert!((scale.normalize(10.0) - 0.0).abs() < 1e-12);
+        assert!((scale.normalize(30.0) - 1.0).abs() < 1e-12);
+        assert!((scale.normalize(20.0) - 0.5).abs() < 1e-12);
+    }
+
+    // 정규화 공간에서 학습한 (θ₀', θ₁')을 역변환하면, 원 공간 데이터에 대한
+    // 예측이 정규화 전 예측 ŷ = θ₀ + θ₁·x 와 같아야 한다.
+    #[test]
+    fn denormalize_thetas_roundtrip() {
+        let xs = [0.0, 10.0, 20.0, 30.0, 40.0];
+        let ys: Vec<f64> = xs.iter().map(|&x| 3.0 * x + 7.0).collect();
+
+        let x_scale = MinMax::from_slice(&xs).unwrap();
+        let y_scale = MinMax::from_slice(&ys).unwrap();
+        let xs_norm = x_scale.normalize_slice(&xs);
+        let ys_norm = y_scale.normalize_slice(&ys);
+
+        // 정규화된 데이터에서 두 점으로 직선 (θ₀', θ₁') 직접 계산.
+        let t1_norm = (ys_norm[4] - ys_norm[0]) / (xs_norm[4] - xs_norm[0]);
+        let t0_norm = ys_norm[0] - t1_norm * xs_norm[0];
+
+        let (t0, t1) = denormalize_thetas(t0_norm, t1_norm, &x_scale, &y_scale);
+
+        assert!((t0 - 7.0).abs() < 1e-9, "theta0: expected 7, got {t0}");
+        assert!((t1 - 3.0).abs() < 1e-9, "theta1: expected 3, got {t1}");
+    }
+}
+

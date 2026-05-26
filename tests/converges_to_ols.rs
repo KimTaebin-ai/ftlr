@@ -21,7 +21,7 @@ fn gd_matches_normal_equation_on_synthetic_data() {
     let ys_norm = y_scale.normalize_slice(&ys);
 
     let config = TrainConfig { learning_rate: 0.1, iterations: 20_000 };
-    let gd_norm = gradient_descent(&xs_norm, &ys_norm, &config);
+    let gd_norm = gradient_descent(&xs_norm, &ys_norm, &config).expect("gd should succeed");
     let (gd_t0, gd_t1) = denormalize_thetas(
         gd_norm.theta0,
         gd_norm.theta1,

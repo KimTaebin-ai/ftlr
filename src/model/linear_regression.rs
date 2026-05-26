@@ -2,9 +2,7 @@ use std::fs;
 
 use serde::{Deserialize, Serialize};
 
-// 학습된 모델이 저장되는 기본 경로.
-pub const THETA_PATH: &str = "theta.json";
-
+#[derive(Debug, Clone, Copy)]
 pub struct TrainConfig {
     pub learning_rate: f64, // alpha
     pub iterations: usize,  // epoch
@@ -43,7 +41,9 @@ pub fn predict(model: &Model, x: f64) -> f64 {
 //   θ₀ = ȳ − θ₁ · x̄
 // 경사하강법 결과가 이 값에 수렴하는지 비교용으로 사용.
 pub fn normal_equation(xs: &[f64], ys: &[f64]) -> Result<Model, String> {
-    assert_eq!(xs.len(), ys.len(), "X and Y must have the same length");
+    if xs.len() != ys.len() {
+        return Err("X and Y must have the same length".to_string());
+    }
     if xs.len() < 2 {
         return Err("normal equation needs at least 2 points".to_string());
     }
@@ -83,9 +83,17 @@ fn compute_gradients(model: &Model, xs: &[f64], ys: &[f64]) -> (f64, f64) {
     ((1.0 / m) * sum0, (1.0 / m) * sum1)
 }
 
-pub fn gradient_descent(xs: &[f64], ys: &[f64], config: &TrainConfig) -> Model {
-    assert_eq!(xs.len(), ys.len(), "X and Y must have the same length");
-    assert!(!xs.is_empty(), "training set must not be empty");
+pub fn gradient_descent(
+    xs: &[f64],
+    ys: &[f64],
+    config: &TrainConfig,
+) -> Result<Model, String> {
+    if xs.len() != ys.len() {
+        return Err("X and Y must have the same length".to_string());
+    }
+    if xs.is_empty() {
+        return Err("training set must not be empty".to_string());
+    }
 
     let mut model = Model { theta0: 0.0, theta1: 0.0 };
 
@@ -99,5 +107,68 @@ pub fn gradient_descent(xs: &[f64], ys: &[f64], config: &TrainConfig) -> Model {
         model.theta1 -= step1;
     }
 
-    model
+    // 학습률이 과하거나 데이터 스케일이 어긋나면 θ가 NaN/Inf로 발산할 수 있음
+    if !model.theta0.is_finite() || !model.theta1.is_finite() {
+        return Err(format!(
+            "gradient descent diverged: theta=({}, {}). try a smaller learning_rate",
+            model.theta0, model.theta1
+        ));
+    }
+
+    Ok(model)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn predict_is_linear_combination() {
+        let model = Model { theta0: 2.0, theta1: 3.0 };
+        assert_eq!(predict(&model, 0.0), 2.0);
+        assert_eq!(predict(&model, 1.0), 5.0);
+        assert_eq!(predict(&model, -1.0), -1.0);
+    }
+
+    // y = 2x + 5 노이즈 없는 정합 → OLS는 정확히 (5, 2)를 복원해야 함.
+    #[test]
+    fn normal_equation_recovers_exact_line() {
+        let xs: Vec<f64> = (0..10).map(|i| i as f64).collect();
+        let ys: Vec<f64> = xs.iter().map(|&x| 2.0 * x + 5.0).collect();
+        let m = normal_equation(&xs, &ys).unwrap();
+        assert!((m.theta0 - 5.0).abs() < 1e-9);
+        assert!((m.theta1 - 2.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn normal_equation_rejects_length_mismatch_and_too_few_points() {
+        assert!(normal_equation(&[1.0, 2.0], &[1.0]).is_err());
+        assert!(normal_equation(&[1.0], &[1.0]).is_err());
+    }
+
+    // 모든 x가 동일하면 기울기가 정의되지 않으므로 Err.
+    #[test]
+    fn normal_equation_errors_on_zero_variance_x() {
+        let xs = [3.0, 3.0, 3.0];
+        let ys = [1.0, 2.0, 3.0];
+        assert!(normal_equation(&xs, &ys).is_err());
+    }
+
+    #[test]
+    fn gradient_descent_rejects_invalid_input() {
+        let cfg = TrainConfig { learning_rate: 0.1, iterations: 10 };
+        assert!(gradient_descent(&[], &[], &cfg).is_err());
+        assert!(gradient_descent(&[1.0, 2.0], &[1.0], &cfg).is_err());
+    }
+
+    // 정규화 안 된 큰 스케일 + 큰 학습률이면 θ가 발산. 종료 가드가 잡아내야 함.
+    #[test]
+    fn gradient_descent_detects_divergence() {
+        let xs: Vec<f64> = (0..10).map(|i| (i * 1000) as f64).collect();
+        let ys: Vec<f64> = xs.iter().map(|&x| 2.0 * x + 5.0).collect();
+        let cfg = TrainConfig { learning_rate: 1.0, iterations: 100 };
+        let result = gradient_descent(&xs, &ys, &cfg);
+        assert!(result.is_err(), "expected divergence error, got {result:?}");
+    }
+}
+

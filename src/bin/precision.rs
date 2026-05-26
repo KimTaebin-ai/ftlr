@@ -1,8 +1,9 @@
 use std::env;
 
-use ftlr::model::linear_regression::{Model, THETA_PATH};
+use ftlr::model::linear_regression::Model;
 use ftlr::utils::dataset::parse_dataset;
 use ftlr::utils::metrics::{r_squared, rmse};
+use ftlr::utils::THETA_PATH;
 
 fn main() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
@@ -15,6 +16,8 @@ fn main() -> Result<(), String> {
     let model = Model::load(THETA_PATH)
         .map_err(|e| format!("{e}\nhint: run `cargo run --bin train -- {}` first", &args[1]))?;
 
+    // 학습 데이터로 측정한 in-sample error
+    // held-out 평가가 아니므로 일반화 성능(미지 데이터 예측 오차)과는 다름
     let r2 = r_squared(&model, &xs, &ys)?;
     let err = rmse(&model, &xs, &ys)?;
 

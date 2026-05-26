@@ -1,11 +1,17 @@
 use std::env;
 
-use ftlr::model::linear_regression::{gradient_descent, Model, TrainConfig, THETA_PATH};
+use ftlr::model::linear_regression::{gradient_descent, Model, TrainConfig};
 use ftlr::preprocess::normalize::{denormalize_thetas, MinMax};
 use ftlr::utils::dataset::parse_dataset;
+use ftlr::utils::THETA_PATH;
 use ftlr::viz::plot;
 
 const SCATTER_PATH: &str = "scatter.png";
+const REGRESSION_PATH: &str = "regression.png";
+
+// 정규화된 입력 기준 잘 수렴하는 값. 데이터 스케일이 바뀌면 재조정 필요.
+const LEARNING_RATE: f64 = 1e-1;
+const ITERATIONS: usize = 20_000;
 
 fn main() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
@@ -22,11 +28,11 @@ fn main() -> Result<(), String> {
     let ys_norm = y_scale.normalize_slice(&ys);
 
     let config = TrainConfig {
-        learning_rate: 1e-1,
-        iterations: 20_000,
+        learning_rate: LEARNING_RATE,
+        iterations: ITERATIONS,
     };
 
-    let model_norm = gradient_descent(&xs_norm, &ys_norm, &config);
+    let model_norm = gradient_descent(&xs_norm, &ys_norm, &config)?;
 
     // θ' (정규화 공간) → θ (원 km/price 공간)
     let (theta0, theta1) = denormalize_thetas(
@@ -46,6 +52,10 @@ fn main() -> Result<(), String> {
     plot::scatter(&xs, &ys, SCATTER_PATH)
         .map_err(|e| format!("failed to draw {SCATTER_PATH}: {e}"))?;
     println!("scatter saved to {SCATTER_PATH}");
+
+    plot::regression(&xs, &ys, &model, None, REGRESSION_PATH)
+        .map_err(|e| format!("failed to draw {REGRESSION_PATH}: {e}"))?;
+    println!("regression saved to {REGRESSION_PATH}");
 
     Ok(())
 }

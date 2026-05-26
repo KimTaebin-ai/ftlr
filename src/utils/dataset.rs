@@ -69,3 +69,75 @@ pub fn parse_dataset(path: &str) -> Result<(Vec<f64>, Vec<f64>), String> {
 
     Ok((xs, ys))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    // 테스트 종료 시 자동 정리되는 임시 CSV. 외부 crate 의존 없이 사용
+    struct TempCsv(PathBuf);
+
+    impl TempCsv {
+        fn new(ext: &str, content: &str) -> Self {
+            static COUNTER: AtomicU64 = AtomicU64::new(0);
+            let n = COUNTER.fetch_add(1, Ordering::SeqCst);
+            let path = std::env::temp_dir().join(format!(
+                "ftlr_test_{}_{}.{ext}",
+                std::process::id(),
+                n
+            ));
+            std::fs::write(&path, content).unwrap();
+            Self(path)
+        }
+        fn path(&self) -> &str {
+            self.0.to_str().unwrap()
+        }
+    }
+
+    impl Drop for TempCsv {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_file(&self.0);
+        }
+    }
+
+    #[test]
+    fn parses_well_formed_csv() {
+        let f = TempCsv::new("csv", "km,price\n10,100\n20,200\n30,300\n");
+        let (xs, ys) = parse_dataset(f.path()).unwrap();
+        assert_eq!(xs, vec![10.0, 20.0, 30.0]);
+        assert_eq!(ys, vec![100.0, 200.0, 300.0]);
+    }
+
+    #[test]
+    fn rejects_missing_file() {
+        assert!(parse_dataset("/definitely/does/not/exist.csv").is_err());
+    }
+
+    #[test]
+    fn rejects_non_csv_extension() {
+        let f = TempCsv::new("txt", "km,price\n10,100\n");
+        assert!(parse_dataset(f.path()).is_err());
+    }
+
+    #[test]
+    fn rejects_wrong_header() {
+        let f = TempCsv::new("csv", "mileage,price\n10,100\n");
+        let err = parse_dataset(f.path()).unwrap_err();
+        assert!(err.contains("header"), "unexpected error: {err}");
+    }
+
+    #[test]
+    fn rejects_empty_body() {
+        let f = TempCsv::new("csv", "km,price\n");
+        assert!(parse_dataset(f.path()).is_err());
+    }
+
+    #[test]
+    fn rejects_non_finite_values() {
+        let f = TempCsv::new("csv", "km,price\n10,100\nNaN,200\n");
+        assert!(parse_dataset(f.path()).is_err());
+    }
+}
+
