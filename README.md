@@ -5,6 +5,10 @@ Trained from scratch with gradient descent — no ML framework.
 
 > Korean version: [README.ko.md](README.ko.md)
 
+<img width="1020" height="276" alt="image" src="https://github.com/user-attachments/assets/f88c5224-fe40-4eb3-a92f-2a2685305a78" />
+<img width="1023" height="214" alt="image" src="https://github.com/user-attachments/assets/20dfedb8-5784-45c6-9ab7-9da680b21954" />
+
+
 ## Requirements
 
 - `data.csv` (header: `km,price`)
